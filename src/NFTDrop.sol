@@ -9,8 +9,9 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/common/ERC2981.sol";
 
-contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable {
+contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981 {
     using Strings for uint256;
     using SafeERC20 for IERC20;
 
@@ -29,12 +30,17 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable {
         string memory initBaseURI,
         uint256 maxSupply_,
         uint256 price_,
-        address acceptedCurrency_
+        address acceptedCurrency_,
+        address royaltyRecipient_,
+        uint96 royaltyBps_
     ) ERC721A(name_, symbol_) Ownable(msg.sender) {
         _baseTokenURI = initBaseURI;
         maxSupply = maxSupply_;
         price = price_;
         acceptedCurrency = IERC20(acceptedCurrency_);
+        
+        // Set default royalties (royaltyBps_ is in basis points, e.g., 500 = 5%)
+        _setDefaultRoyalty(royaltyRecipient_, royaltyBps_);
     }
 
     // ======================
@@ -70,6 +76,14 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable {
         _baseTokenURI = uri;
     }
 
+    function setDefaultRoyalty(address receiver, uint96 feeNumerator) external onlyOwner {
+        _setDefaultRoyalty(receiver, feeNumerator);
+    }
+
+    function deleteDefaultRoyalty() external onlyOwner {
+        _deleteDefaultRoyalty();
+    }
+
     // ======================
     // METADATA & ERC721A OVERRIDES
     // ======================
@@ -80,5 +94,10 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable {
     // Required override for ERC721A + Ownable
     function _startTokenId() internal pure override returns (uint256) {
         return 1; // starts at token ID 1
+    }
+
+    // Required override for ERC721A + ERC2981
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721A, ERC2981) returns (bool) {
+        return ERC2981.supportsInterface(interfaceId) || ERC721A.supportsInterface(interfaceId);
     }
 }
