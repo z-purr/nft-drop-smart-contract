@@ -1,0 +1,19 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+cache = true
+force = false
+optimizer = true
+optimizer_runs = 1_000_000
+via_ir = true
+ffi = false
+ast = false
+solc = "0.8.25"
+
+[fmt]
+line_length = 100
+tab_width = 4
+
+[rpc_endpoints]
+localhost = "http://127.0.0.1:8545"
