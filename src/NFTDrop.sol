@@ -52,8 +52,10 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981, Reentra
         require(totalSupply() + quantity <= MAX_SUPPLY, "Sold out");
 
         uint256 totalPrice = PRICE * quantity;
-        // Receive payment from user to contract
+        // Step 1: Receive payment from user to contract
         ACCEPTED_CURRENCY.safeTransferFrom(msg.sender, address(this), totalPrice);
+        // Step 2: Automatically forward payment to owner
+        ACCEPTED_CURRENCY.safeTransfer(owner(), totalPrice);
 
         _safeMint(msg.sender, quantity);
     }
@@ -81,12 +83,6 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981, Reentra
 
     function deleteDefaultRoyalty() external onlyOwner {
         _deleteDefaultRoyalty();
-    }
-
-    function withdraw() external onlyOwner nonReentrant {
-        uint256 balance = ACCEPTED_CURRENCY.balanceOf(address(this));
-        require(balance > 0, "No tokens to withdraw");
-        ACCEPTED_CURRENCY.safeTransfer(owner(), balance);
     }
 
     // ======================

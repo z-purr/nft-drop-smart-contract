@@ -17,4 +17,4 @@ tab_width = 4
 
 [rpc_endpoints]
 localhost = "http://127.0.0.1:8545"
-testnet = "https://base-sepolia.g.alchemy.com/v2/LYFzutecjTTIAMwiw4Ntx"
+testnet = "https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
