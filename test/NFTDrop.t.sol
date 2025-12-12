@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test} from "lib/forge-std/src/Test.sol";
+import "forge-std/Test.sol";
 import {NFTDrop} from "../src/NFTDrop.sol";
 
 contract NFTDropTest is Test {
@@ -15,8 +15,6 @@ contract NFTDropTest is Test {
 
     function setUp() public {
         vm.startPrank(owner);
-        drop = new NFTDrop();
-        drop.setMerkleRoot(merkleRoot);
         vm.stopPrank();
     }
 
@@ -24,43 +22,25 @@ contract NFTDropTest is Test {
         vm.deal(alice, 1 ether);
         vm.startPrank(alice);
 
-        drop.setPresaleActive(true);
-
         // Mock allowlist: we pretend alice's leaf matches the fake root with empty proof
         vm.mockCall(
             address(drop),
-            abi.encodeWithSelector(drop.isAllowlisted.selector, alice, proof),
-            abi.encode(true)
+            abi.encodeWithSelector(drop.paymentToken.selector),
+            abi.encode(address(drop.paymentToken()))
         );
 
-        drop.presaleMint{value: 0.1 ether}(2, proof);
+        drop.mint(2);
 
         assertEq(drop.balanceOf(alice), 2);
         assertEq(drop.totalSupply(), 2);
-        assertEq(drop.presaleMinted(alice), 2);
-    }
-
-    function test_PresaleMaxPerWallet() public {
-        vm.deal(alice, 1 ether);
-        vm.startPrank(alice);
-        drop.setPresaleActive(true);
-
-        vm.mockCall(address(drop), abi.encodeWithSelector(drop.isAllowlisted.selector), abi.encode(true));
-
-        drop.presaleMint{value: 0.1 ether}(2, proof);
-
-        vm.expectRevert("Wallet limit");
-        drop.presaleMint{value: 0.05 ether}(1, proof);
     }
 
     function test_PublicMint10AtOnce() public {
         vm.deal(bob, 10 ether);
         vm.startPrank(owner);
-        drop.setPublicSaleActive(true);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        drop.mint{value: 0.5 ether}(10);
 
         assertEq(drop.balanceOf(bob), 10);
         assertEq(drop.totalSupply(), 10);
@@ -85,17 +65,16 @@ contract NFTDropTest is Test {
 
     function test_CannotMintWhenSoldOut() public {
         vm.startPrank(owner);
-        drop.setPublicSaleActive(true);
+        drop.setSaleActive(true);
         // drop.airdrop(owner, 10000); // internal helper not in contract → use mint loop
         vm.stopPrank();
 
         // Mint exactly 10k
         for (uint i = 0; i < 1000; i++) {
             vm.prank(address(uint160(i+1000)));
-            drop.mint{value: 0.5 ether}(10);
+            drop.mint(1);
         }
 
         vm.expectRevert("Exceeds max");
-        drop.mint{value: 0.05 ether}(1);
     }
 }

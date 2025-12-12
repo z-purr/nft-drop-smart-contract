@@ -6,83 +6,76 @@ import "@ERC721A/contracts/extensions/ERC721AQueryable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract NFTDrop is ERC721AQueryable, Ownable {
     using Strings for uint256;
+    using SafeERC20 for IERC20;
 
-    uint256 public constant MAX_SUPPLY = 10000;
-    uint256 public constant PRICE = 0.05 ether;
+    uint256 public maxSupply;
+    uint256 public price;
 
     // Sale stages
-    bool public presaleActive = false;
-    bool public publicSaleActive = false;
+    bool public saleActive = false;
 
     string private _baseTokenURI;
-    bytes32 public merkleRoot;
-
-    // Presale tracking (per wallet)
-    mapping(address => uint256) public presaleMinted;
+    IERC20 public paymentToken; // USDC or EURC (configurable: USDC, EURC, etc.)
 
     constructor(
         string memory name_,
         string memory symbol_,
-        string memory initBaseURI
+        string memory initBaseURI,
+        uint256 maxSupply_,
+        uint256 price_,
+        address paymentToken_
     ) ERC721A(name_, symbol_) Ownable(msg.sender) {
         _baseTokenURI = initBaseURI;
+        maxSupply = maxSupply_;
+        price = price_;
+        paymentToken = IERC20(paymentToken_);
     }
 
     // ======================
     // PUBLIC MINT (cheapest with ERC721A)
     // ======================
-    function mint(uint256 quantity) external payable {
-        require(publicSaleActive, "Public sale not active");
-        require(totalSupply() + quantity <= MAX_SUPPLY, "Sold out");
-        require(msg.value >= PRICE * quantity, "Not enough ETH");
+    function mint(uint256 quantity) external {
+        require(saleActive, "Sale not active");
+        require(totalSupply() + quantity <= maxSupply, "Sold out");
+        
+        uint256 totalPrice = price * quantity;
+        paymentToken.safeTransferFrom(msg.sender, address(this), totalPrice);
 
         _safeMint(msg.sender, quantity);
-    }
-
-    // ======================
-    // PRESALE / ALLOWLIST MINT
-    // ======================
-    function presaleMint(uint256 quantity, bytes32[] calldata proof) external payable {
-        require(presaleActive, "Presale not active");
-        require(isAllowlisted(msg.sender, proof), "Not on allowlist");
-        require(totalSupply() + quantity <= MAX_SUPPLY, "Sold out");
-        require(presaleMinted[msg.sender] + quantity <= 2, "Exceeds presale limit"); // change if needed
-        require(msg.value >= PRICE * quantity, "Not enough ETH");
-
-        presaleMinted[msg.sender] += quantity;
-
-        _safeMint(msg.sender, quantity);
-    }
-
-    function isAllowlisted(address addr, bytes32[] calldata proof) public view returns (bool) {
-        bytes32 leaf = keccak256(abi.encodePacked(addr));
-        return MerkleProof.verify(proof, merkleRoot, leaf);
     }
 
     // ======================
     // OWNER FUNCTIONS
     // ======================
-    function setPresaleActive(bool _state) external onlyOwner {
-        presaleActive = _state;
-    }
-
-    function setPublicSaleActive(bool _state) external onlyOwner {
-        publicSaleActive = _state;
-    }
-
-    function setMerkleRoot(bytes32 _root) external onlyOwner {
-        merkleRoot = _root;
+    function setSaleActive(bool _state) external onlyOwner {
+        saleActive = _state;
     }
 
     function setBaseURI(string calldata uri) external onlyOwner {
         _baseTokenURI = uri;
     }
 
+    function setPrice(uint256 _price) external onlyOwner {
+        price = _price;
+    }
+
+    function setMaxSupply(uint256 _maxSupply) external onlyOwner {
+        maxSupply = _maxSupply;
+    }
+
+    function setPaymentToken(address _paymentToken) external onlyOwner {
+        paymentToken = IERC20(_paymentToken);
+    }
+
     function withdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+        uint256 balance = paymentToken.balanceOf(address(this));
+        require(balance > 0, "No tokens to withdraw");
+        paymentToken.safeTransfer(owner(), balance);
     }
 
     // ======================
