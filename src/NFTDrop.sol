@@ -20,7 +20,7 @@ contract NFTDrop is ERC721AQueryable, Ownable {
     bool public saleActive = false;
 
     string private _baseTokenURI;
-    IERC20 public paymentToken; // USDC or EURC (configurable: USDC, EURC, etc.)
+    IERC20 public immutable acceptedCurrency; // USDC or EURC (configurable per deployment chain)
 
     constructor(
         string memory name_,
@@ -28,12 +28,12 @@ contract NFTDrop is ERC721AQueryable, Ownable {
         string memory initBaseURI,
         uint256 maxSupply_,
         uint256 price_,
-        address paymentToken_
+        address acceptedCurrency_
     ) ERC721A(name_, symbol_) Ownable(msg.sender) {
         _baseTokenURI = initBaseURI;
         maxSupply = maxSupply_;
         price = price_;
-        paymentToken = IERC20(paymentToken_);
+        acceptedCurrency = IERC20(acceptedCurrency_);
     }
 
     // ======================
@@ -44,7 +44,7 @@ contract NFTDrop is ERC721AQueryable, Ownable {
         require(totalSupply() + quantity <= maxSupply, "Sold out");
         
         uint256 totalPrice = price * quantity;
-        paymentToken.safeTransferFrom(msg.sender, address(this), totalPrice);
+        acceptedCurrency.safeTransferFrom(msg.sender, address(this), totalPrice);
 
         _safeMint(msg.sender, quantity);
     }
@@ -61,9 +61,9 @@ contract NFTDrop is ERC721AQueryable, Ownable {
     }
 
     function withdraw() external onlyOwner {
-        uint256 balance = paymentToken.balanceOf(address(this));
+        uint256 balance = acceptedCurrency.balanceOf(address(this));
         require(balance > 0, "No tokens to withdraw");
-        paymentToken.safeTransfer(owner(), balance);
+        acceptedCurrency.safeTransfer(owner(), balance);
     }
 
     // ======================
