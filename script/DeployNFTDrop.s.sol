@@ -13,7 +13,7 @@ contract DeployNFTDrop is Script {
 
         // Deploy MockUSDC if DEPLOY_MOCK_USDC is set to true, otherwise use provided address
         address currency;
-        bool deployMockUSDC = vm.envOr("DEPLOY_MOCK_USDC", true);
+        bool deployMockUSDC = vm.envOr("DEPLOY_MOCK_USDC", false);
 
         if (deployMockUSDC) {
             MockUSDC mockUSDC = new MockUSDC();
@@ -36,7 +36,8 @@ contract DeployNFTDrop is Script {
         string memory symbol = vm.envOr("NFT_SYMBOL", string("MND"));
         string memory baseURI = vm.envOr("BASE_URI", string("https://api.example.com/metadata/"));
         uint256 maxSupply = vm.envOr("MAX_SUPPLY", uint256(1000));
-        uint256 price = vm.envOr("PRICE", uint256(50 * 10 ** 6)); // 50 USDC (6 decimals)
+        // uint256 price = vm.envOr("PRICE", uint256(50 * 10 ** 6)); // 50 USDC (6 decimals)
+        uint256 price = vm.envOr("PRICE", uint256(0.01 * 10 ** 6)); // 0.01 USDC (6 decimals)
         address royaltyRecipient = vm.envOr("ROYALTY_RECIPIENT", vm.addr(deployerPrivateKey));
         uint256 royaltyBpsUint = vm.envOr("ROYALTY_BPS", uint256(500));
         // casting to 'uint96' is safe because royaltyBps is always < 10000 (100%)
