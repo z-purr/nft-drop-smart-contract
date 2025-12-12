@@ -3,13 +3,14 @@ pragma solidity ^0.8.13;
 
 import "@ERC721A/contracts/ERC721A.sol";
 import "@ERC721A/contracts/extensions/ERC721AQueryable.sol";
+import "@ERC721A/contracts/extensions/ERC721ABurnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract NFTDrop is ERC721AQueryable, Ownable {
+contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable {
     using Strings for uint256;
     using SafeERC20 for IERC20;
 
@@ -51,6 +52,12 @@ contract NFTDrop is ERC721AQueryable, Ownable {
 
         _safeMint(msg.sender, quantity);
     }
+
+    // ======================
+    // BURN FUNCTIONALITY
+    // ======================
+    // burn(uint256 tokenId) is provided by ERC721ABurnable
+    // Token owners can burn their NFTs to enable future "burn-to-mint" upgrade mechanics
 
     // ======================
     // OWNER FUNCTIONS
