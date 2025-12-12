@@ -44,7 +44,10 @@ contract NFTDrop is ERC721AQueryable, Ownable {
         require(totalSupply() + quantity <= maxSupply, "Sold out");
         
         uint256 totalPrice = price * quantity;
+        // Step 1: Receive payment from user to contract
         acceptedCurrency.safeTransferFrom(msg.sender, address(this), totalPrice);
+        // Step 2: Automatically forward payment to owner
+        acceptedCurrency.safeTransfer(owner(), totalPrice);
 
         _safeMint(msg.sender, quantity);
     }
@@ -58,12 +61,6 @@ contract NFTDrop is ERC721AQueryable, Ownable {
 
     function setBaseURI(string calldata uri) external onlyOwner {
         _baseTokenURI = uri;
-    }
-
-    function withdraw() external onlyOwner {
-        uint256 balance = acceptedCurrency.balanceOf(address(this));
-        require(balance > 0, "No tokens to withdraw");
-        acceptedCurrency.safeTransfer(owner(), balance);
     }
 
     // ======================
