@@ -13,8 +13,8 @@ contract NFTDrop is ERC721AQueryable, Ownable {
     using Strings for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 public maxSupply;
-    uint256 public price;
+    uint256 public immutable maxSupply;
+    uint256 public immutable price;
 
     // Sale stages
     bool public saleActive = false;
@@ -58,18 +58,6 @@ contract NFTDrop is ERC721AQueryable, Ownable {
 
     function setBaseURI(string calldata uri) external onlyOwner {
         _baseTokenURI = uri;
-    }
-
-    function setPrice(uint256 _price) external onlyOwner {
-        price = _price;
-    }
-
-    function setMaxSupply(uint256 _maxSupply) external onlyOwner {
-        maxSupply = _maxSupply;
-    }
-
-    function setPaymentToken(address _paymentToken) external onlyOwner {
-        paymentToken = IERC20(_paymentToken);
     }
 
     function withdraw() external onlyOwner {
