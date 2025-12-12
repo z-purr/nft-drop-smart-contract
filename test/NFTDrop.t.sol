@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {NFTDrop} from "../src/NFTDrop.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Mock ERC20 token for testing (6 decimals like USDC/EURC)
 contract MockERC20 is ERC20 {
@@ -104,7 +104,7 @@ contract NFTDropTest is Test {
         // Verify we've minted all tokens
         assertEq(drop.totalSupply(), MAX_SUPPLY);
 
-        // Try to mint one more - should fail with "Sold out"
+        // Try to mint one more - should fail with SoldOut error
         paymentToken.mint(bob, PRICE);
         paymentToken.approve(address(drop), PRICE);
         vm.expectRevert("Sold out");
