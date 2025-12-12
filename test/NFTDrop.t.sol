@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 // Mock ERC20 token for testing (6 decimals like USDC/EURC)
 contract MockERC20 is ERC20 {
     constructor() ERC20("Mock Token", "MOCK") {
-        _mint(msg.sender, 1000000 * 10**6);
+        _mint(msg.sender, 1000000 * 10 ** 6);
     }
 
     function mint(address to, uint256 amount) external {
@@ -28,15 +28,15 @@ contract NFTDropTest is Test {
     address bob = address(0x333);
 
     uint256 constant MAX_SUPPLY = 10000;
-    uint256 constant PRICE = 50 * 10**6; // 50 tokens with 6 decimals
+    uint256 constant PRICE = 50 * 10 ** 6; // 50 tokens with 6 decimals
     uint96 constant ROYALTY_BPS = 500; // 5%
 
     function setUp() public {
         vm.startPrank(owner);
-        
+
         // Deploy mock ERC20 token
         paymentToken = new MockERC20();
-        
+
         // Deploy NFTDrop contract
         drop = new NFTDrop(
             "Test NFT",
@@ -48,12 +48,12 @@ contract NFTDropTest is Test {
             owner, // royalty recipient
             ROYALTY_BPS // 5% royalty
         );
-        
+
         vm.stopPrank();
-        
+
         // Give tokens to test users
-        paymentToken.mint(alice, 1000000 * 10**6);
-        paymentToken.mint(bob, 1000000 * 10**6);
+        paymentToken.mint(alice, 1000000 * 10 ** 6);
+        paymentToken.mint(bob, 1000000 * 10 ** 6);
     }
 
     function test_PublicMint10AtOnce() public {
@@ -63,7 +63,7 @@ contract NFTDropTest is Test {
 
         uint256 quantity = 10;
         uint256 totalPrice = PRICE * quantity;
-        
+
         vm.startPrank(bob);
         paymentToken.approve(address(drop), totalPrice);
         drop.mint(quantity);
@@ -97,13 +97,13 @@ contract NFTDropTest is Test {
         paymentToken.mint(bob, PRICE * MAX_SUPPLY);
         vm.startPrank(bob);
         paymentToken.approve(address(drop), PRICE * MAX_SUPPLY);
-        
+
         // Mint all tokens in one batch (most gas efficient)
         drop.mint(MAX_SUPPLY);
-        
+
         // Verify we've minted all tokens
         assertEq(drop.totalSupply(), MAX_SUPPLY);
-        
+
         // Try to mint one more - should fail with "Sold out"
         paymentToken.mint(bob, PRICE);
         paymentToken.approve(address(drop), PRICE);
