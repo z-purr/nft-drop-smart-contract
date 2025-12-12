@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "@ERC721A/contracts/ERC721A.sol";
+import "@ERC721A/contracts/IERC721A.sol";
 import "@ERC721A/contracts/extensions/ERC721AQueryable.sol";
 import "@ERC721A/contracts/extensions/ERC721ABurnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -97,7 +98,7 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981 {
     }
 
     // Required override for ERC721A + ERC2981
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721A, ERC2981) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721A, IERC721A, ERC2981) returns (bool) {
         return ERC2981.supportsInterface(interfaceId) || ERC721A.supportsInterface(interfaceId);
     }
 }

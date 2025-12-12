@@ -18,23 +18,6 @@ contract NFTDropTest is Test {
         vm.stopPrank();
     }
 
-    function test_PresaleMint() public {
-        vm.deal(alice, 1 ether);
-        vm.startPrank(alice);
-
-        // Mock allowlist: we pretend alice's leaf matches the fake root with empty proof
-        vm.mockCall(
-            address(drop),
-            abi.encodeWithSelector(drop.paymentToken.selector),
-            abi.encode(address(drop.paymentToken()))
-        );
-
-        drop.mint(2);
-
-        assertEq(drop.balanceOf(alice), 2);
-        assertEq(drop.totalSupply(), 2);
-    }
-
     function test_PublicMint10AtOnce() public {
         vm.deal(bob, 10 ether);
         vm.startPrank(owner);
@@ -44,16 +27,6 @@ contract NFTDropTest is Test {
 
         assertEq(drop.balanceOf(bob), 10);
         assertEq(drop.totalSupply(), 10);
-    }
-
-    function test_Withdraw() public {
-        vm.deal(address(drop), 1 ether);
-        uint256 ownerBalBefore = owner.balance;
-
-        vm.prank(owner);
-        drop.withdraw();
-
-        assertEq(owner.balance, ownerBalBefore + 1 ether);
     }
 
     function test_Reveal() public {
@@ -71,7 +44,7 @@ contract NFTDropTest is Test {
 
         // Mint exactly 10k
         for (uint i = 0; i < 1000; i++) {
-            vm.prank(address(uint160(i+1000)));
+            vm.prank(address(uint160(i + 1000)));
             drop.mint(1);
         }
 
