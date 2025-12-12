@@ -39,7 +39,7 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981 {
         maxSupply = maxSupply_;
         price = price_;
         acceptedCurrency = IERC20(acceptedCurrency_);
-        
+
         // Set default royalties (royaltyBps_ is in basis points, e.g., 500 = 5%)
         _setDefaultRoyalty(royaltyRecipient_, royaltyBps_);
     }
@@ -50,7 +50,7 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981 {
     function mint(uint256 quantity) external {
         require(saleActive, "Sale not active");
         require(totalSupply() + quantity <= maxSupply, "Sold out");
-        
+
         uint256 totalPrice = price * quantity;
         // Step 1: Receive payment from user to contract
         acceptedCurrency.safeTransferFrom(msg.sender, address(this), totalPrice);
@@ -98,7 +98,13 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981 {
     }
 
     // Required override for ERC721A + ERC2981
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721A, IERC721A, ERC2981) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC721A, IERC721A, ERC2981)
+        returns (bool)
+    {
         return ERC2981.supportsInterface(interfaceId) || ERC721A.supportsInterface(interfaceId);
     }
 }
