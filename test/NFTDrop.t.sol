@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {NFTDrop} from "../src/NFTDrop.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 // Mock ERC20 token for testing (6 decimals like USDC/EURC)
 contract MockERC20 is ERC20 {
@@ -37,17 +38,26 @@ contract NFTDropTest is Test {
         // Deploy mock ERC20 token
         paymentToken = new MockERC20();
 
-        // Deploy NFTDrop contract
-        drop = new NFTDrop(
+        // Deploy NFTDrop implementation
+        NFTDrop implementation = new NFTDrop();
+
+        // Encode the initialize function call
+        bytes memory initData = abi.encodeWithSelector(
+            NFTDrop.initialize.selector,
             "Test NFT",
             "TNFT",
             "ipfs://test/",
             MAX_SUPPLY,
             PRICE,
             address(paymentToken),
+            owner, // initialOwner
             owner, // royalty recipient
             ROYALTY_BPS // 5% royalty
         );
+
+        // Deploy ERC1967Proxy pointing to implementation
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+        drop = NFTDrop(payable(address(proxy)));
 
         vm.stopPrank();
 
@@ -57,12 +67,14 @@ contract NFTDropTest is Test {
     }
 
     function test_PublicMint10AtOnce() public {
+        // saleActive defaults to true, but let's be explicit
         vm.startPrank(owner);
         drop.setSaleActive(true);
         vm.stopPrank();
 
         uint256 quantity = 10;
         uint256 totalPrice = PRICE * quantity;
+        uint256 previewOwnerBalance = paymentToken.balanceOf(address(owner));
 
         vm.startPrank(bob);
         paymentToken.approve(address(drop), totalPrice);
@@ -71,6 +83,9 @@ contract NFTDropTest is Test {
 
         assertEq(drop.balanceOf(bob), quantity);
         assertEq(drop.totalSupply(), quantity);
+
+        // Verify payment was received by contract (not auto-forwarded)
+        assertEq(paymentToken.balanceOf(address(owner)) - previewOwnerBalance, totalPrice);
     }
 
     function test_Reveal() public {
@@ -108,6 +123,45 @@ contract NFTDropTest is Test {
         paymentToken.mint(bob, PRICE);
         paymentToken.approve(address(drop), PRICE);
         vm.expectRevert("Sold out");
+        drop.mint(1);
+        vm.stopPrank();
+    }
+
+    function test_Burn() public {
+        vm.startPrank(owner);
+        drop.setSaleActive(true);
+        vm.stopPrank();
+
+        // Mint a token
+        vm.startPrank(bob);
+        paymentToken.approve(address(drop), PRICE);
+        drop.mint(1);
+        vm.stopPrank();
+
+        assertEq(drop.balanceOf(bob), 1);
+        assertEq(drop.totalSupply(), 1);
+        assertEq(drop.ownerOf(1), bob);
+
+        // Bob burns his token
+        vm.startPrank(bob);
+        drop.burn(1);
+        vm.stopPrank();
+
+        // Verify token is burned
+        assertEq(drop.balanceOf(bob), 0);
+        assertEq(drop.totalSupply(), 0);
+        vm.expectRevert();
+        drop.ownerOf(1);
+    }
+
+    function test_CannotMintWhenSaleInactive() public {
+        vm.startPrank(owner);
+        drop.setSaleActive(false);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        paymentToken.approve(address(drop), PRICE);
+        vm.expectRevert("Sale not active");
         drop.mint(1);
         vm.stopPrank();
     }

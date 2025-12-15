@@ -1,40 +1,75 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {ERC721A} from "@ERC721A/contracts/ERC721A.sol";
-import {IERC721A} from "@ERC721A/contracts/IERC721A.sol";
-import {ERC721AQueryable} from "@ERC721A/contracts/extensions/ERC721AQueryable.sol";
-import {ERC721ABurnable} from "@ERC721A/contracts/extensions/ERC721ABurnable.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
+import {ERC721AUpgradeable} from "@erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
+import {IERC721AUpgradeable} from "@erc721a-upgradeable/contracts/IERC721AUpgradeable.sol";
+import {
+    ERC721ABurnableUpgradeable
+} from "@erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
+import {
+    ERC2981Upgradeable
+} from "@openzeppelin-contracts-upgradeable/contracts/token/common/ERC2981Upgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {
+    UUPSUpgradeable
+} from "@openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
-contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981, ReentrancyGuard {
+contract NFTDrop is
+    ERC721AUpgradeable,
+    ERC721ABurnableUpgradeable,
+    OwnableUpgradeable,
+    ERC2981Upgradeable,
+    UUPSUpgradeable,
+    ReentrancyGuard
+{
     using Strings for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 public immutable MAX_SUPPLY;
-    uint256 public immutable PRICE;
+    // Changed from immutable to storage variables for upgradeability
+    // These should only be set during initialization and never changed
+    uint256 public MAX_SUPPLY;
+    uint256 public PRICE;
 
     // Sale stages
     bool public saleActive = true;
 
     string private _baseTokenURI;
-    IERC20 public immutable ACCEPTED_CURRENCY; // USDC or EURC (configurable per deployment chain)
+    IERC20 public ACCEPTED_CURRENCY; // USDC or EURC (configurable per deployment chain)
 
-    constructor(
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
         string memory name_,
         string memory symbol_,
         string memory initBaseURI,
         uint256 maxSupply_,
         uint256 price_,
         address acceptedCurrency_,
+        address initialOwner_,
         address royaltyRecipient_,
         uint96 royaltyBps_
-    ) ERC721A(name_, symbol_) Ownable(msg.sender) {
+    ) public initializerERC721A initializer {
+        // Initialize ERC721AUpgradeable
+        __ERC721A_init(name_, symbol_);
+
+        // Initialize ERC721ABurnableUpgradeable
+        __ERC721ABurnable_init();
+
+        // Initialize ERC2981Upgradeable
+        __ERC2981_init();
+
+        // Initialize OwnableUpgradeable
+        __Ownable_init(initialOwner_);
+
         _baseTokenURI = initBaseURI;
         MAX_SUPPLY = maxSupply_;
         PRICE = price_;
@@ -61,10 +96,48 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981, Reentra
     }
 
     // ======================
-    // BURN FUNCTIONALITY
+    // NFT AS PAYMENT TOKEN FUNCTIONALITY
     // ======================
-    // burn(uint256 tokenId) is provided by ERC721ABurnable
-    // Token owners can burn their NFTs to enable future "burn-to-mint" upgrade mechanics
+    // This NFT can be used as payment token for other contracts
+    // Users approve the second contract, then second contract calls transferFrom
+    // Standard ERC721 transferFrom is used - no special functions needed
+
+    /**
+     * @dev Helper function to verify user owns specific token IDs
+     * @param owner The address to check ownership for
+     * @param tokenIds Array of token IDs to verify
+     * @return bool True if owner owns all tokens
+     */
+    function verifyOwnership(address owner, uint256[] calldata tokenIds)
+        external
+        view
+        returns (bool)
+    {
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            if (ownerOf(tokenIds[i]) != owner) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @dev Get balance of specific token IDs owned by an address
+     * @param owner The address to check
+     * @param tokenIds Array of token IDs to check
+     * @return count Number of tokens owned
+     */
+    function getOwnedCount(address owner, uint256[] calldata tokenIds)
+        external
+        view
+        returns (uint256 count)
+    {
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            if (ownerOf(tokenIds[i]) == owner) {
+                count++;
+            }
+        }
+    }
 
     // ======================
     // OWNER FUNCTIONS
@@ -102,9 +175,17 @@ contract NFTDrop is ERC721AQueryable, ERC721ABurnable, Ownable, ERC2981, Reentra
         public
         view
         virtual
-        override(ERC721A, IERC721A, ERC2981)
+        override(ERC721AUpgradeable, IERC721AUpgradeable, ERC2981Upgradeable)
         returns (bool)
     {
-        return ERC2981.supportsInterface(interfaceId) || ERC721A.supportsInterface(interfaceId);
+        return ERC2981Upgradeable.supportsInterface(interfaceId)
+            || ERC721AUpgradeable.supportsInterface(interfaceId);
+    }
+
+    // ======================
+    // UUPS UPGRADE AUTHORIZATION
+    // ======================
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Only the owner can authorize upgrades
     }
 }
