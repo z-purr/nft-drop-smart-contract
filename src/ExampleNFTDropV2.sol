@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import {ERC721A} from "@ERC721A/contracts/ERC721A.sol";
-import {IERC721A} from "@ERC721A/contracts/IERC721A.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {NFTDrop} from "./NFTDrop.sol";

@@ -45,7 +45,7 @@ contract DeployNFTDrop is Script {
         uint96 royaltyBps = uint96(royaltyBpsUint);
 
         NFTDrop nftDrop = new NFTDrop(
-            name, symbol, baseURI, maxSupply, price, currency, royaltyRecipient, royaltyBps
+            // name, symbol, baseURI, maxSupply, price, currency, royaltyRecipient, royaltyBps
         );
 
         console.log("NFTDrop deployed to:", address(nftDrop));
