@@ -38,7 +38,7 @@ contract DeployNFTDrop is Script {
         string memory symbol = vm.envOr("NFT_SYMBOL", string("MND"));
         string memory baseURI = vm.envOr("BASE_URI", string("https://api.example.com/metadata/"));
         uint256 maxSupply = vm.envOr("MAX_SUPPLY", uint256(1000));
-        uint256 price = vm.envOr("PRICE", uint256(50 * 10 ** 6)); // 50 USDC (6 decimals)
+        uint256 price = vm.envOr("PRICE", uint256(0.01 * 10 ** 6)); // 0.01 USDC (6 decimals)
         address initialOwner = vm.envOr("INITIAL_OWNER", deployer);
         address royaltyRecipient = vm.envOr("ROYALTY_RECIPIENT", deployer);
         uint256 royaltyBpsUint = vm.envOr("ROYALTY_BPS", uint256(500));
